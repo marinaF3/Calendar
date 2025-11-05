@@ -23,6 +23,7 @@ const (
 	Help         = "help"
 	Log          = "log"
 	Exit         = "exit"
+	AllComands   = "all-commands"
 )
 
 type Cmd struct {
@@ -83,7 +84,7 @@ func (c *Cmd) executor(input string) {
 		{
 			logger.Info("Обработка команды add-event")
 			if len(parts) < 4 {
-				fmt.Println("Формат: add-event \"название события\" \"дата и время в формате 2025/01/31 00:01\" \"приоритет\"")
+				fmt.Println("Формат: add-event \"название события\" \"дата и время в формате 2025-01-31 00:01\" \"приоритет\"")
 				logger.Error("Неверный формат команды add-event")
 				return
 
@@ -107,7 +108,7 @@ func (c *Cmd) executor(input string) {
 	case UpdateEvent:
 		{
 			logger.Info("Обработка команды update-event")
-			if len(parts) < 4 {
+			if len(parts) < 5 {
 				fmt.Println("Формат: update-event <ID> \"новое название\" \"дата и время в формате 2025-01-31 00:01\" \"приоритет\"")
 				logger.Error("Неверный формат команды update-event")
 				return
@@ -122,7 +123,7 @@ func (c *Cmd) executor(input string) {
 			oldTitle, newTitle, err := c.calendar.EditEvent(ID, title, date, priority)
 
 			if err != nil {
-				fmt.Println("Ошибка обновления события:", err) // выводим ошибки
+				fmt.Println("Ошибка обновления события:", err)
 				logger.Error("Ошибка обновления события: " + err.Error())
 			} else {
 				fmt.Printf("Изменено событие: \"%s\" на \"%s\"", oldTitle, newTitle)
@@ -134,7 +135,7 @@ func (c *Cmd) executor(input string) {
 			logger.Info("Обработка команды remove")
 			if len(parts) < 2 {
 				//TODO добавить формат
-				logger.Error("Неверный формат команды remove")
+				logger.Error("Неверный формат команды remove-event")
 				fmt.Printf("Формат: %s\n", "remove-event ID")
 				return
 			}
@@ -165,7 +166,7 @@ func (c *Cmd) executor(input string) {
 		logger.Info(fmt.Sprintf("Выведено %d событий", len(eventsList)))
 		for _, e := range eventsList {
 			fmt.Printf("▶ %s\n", e.Title)
-			fmt.Printf("  🆔 %s\n", e.ID) // Добавлена строка с ID
+			fmt.Printf("  🆔 %s\n", e.ID)
 			fmt.Printf("  📅 %s  🏷️ %s\n",
 				e.StartAt.Format("02 Jan 15:04"),
 				e.Priority)
@@ -181,8 +182,8 @@ func (c *Cmd) executor(input string) {
 	case AddRemind:
 		{
 			logger.Info("Обработка команды add-remind")
-			if len(parts) < 4 {
-				fmt.Printf("Формат: %s\n", "add-remind <ID> \"сообщение\" \"дата и время\" \"длительность\"")
+			if len(parts) < 5 {
+				fmt.Printf("Формат: %s\n", "add-remind <ID> \"сообщение\" \"дата и время в формате 2025-01-31 00:01\" \"длительность\"")
 				logger.Error("Неверный формат команды add-remind")
 				return
 			}
@@ -251,7 +252,6 @@ func (c *Cmd) executor(input string) {
 			logger.Error("Ошибка сохранения данных: " + err.Error())
 			return
 		}
-		// c.calendar.Close()
 		fmt.Printf("Данные успешно сохранены.Приложение завершило работу")
 		logger.Info("Данные успешно сохранены.Приложение завершило работу")
 		os.Exit(0)
@@ -266,14 +266,17 @@ func (c *Cmd) executor(input string) {
 func (c *Cmd) completer(d prompt.Document) []prompt.Suggest {
 	suggestions := []prompt.Suggest{
 		{Text: AddEvent, Description: "Добавить событие"},
-		{Text: List, Description: "Показать все события"},
+		{Text: UpdateEvent, Description: "Обновить событие"},
+
 		{Text: RemoveEvent, Description: "Удалить событие"},
-		{Text: Help, Description: "Показать справку"},
-		{Text: Exit, Description: "Выйти из программы"},
+		{Text: List, Description: "Показать все события"},
+
 		{Text: AddRemind, Description: "Добавить напоминание"},
 		{Text: CancelRemind, Description: "Отменить напоминание"},
-		{Text: UpdateEvent, Description: "Обновить событие"},
+
 		{Text: Log, Description: "Посмотреть логи"},
+		{Text: Help, Description: "Показать справку"},
+		{Text: Exit, Description: "Выйти из программы"},
 	}
 
 	return prompt.FilterHasPrefix(suggestions, d.GetWordBeforeCursor(), true)
@@ -284,7 +287,7 @@ func (c *Cmd) Run() {
 		c.executor,
 		c.completer,
 		prompt.OptionPrefix("> "),
-		prompt.OptionMaxSuggestion(3),
+		prompt.OptionMaxSuggestion(10),
 	)
 	go func() {
 		for msg := range c.calendar.Notification {
